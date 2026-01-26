@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "useblock",
+	"version": "1.0.0",
+
+	"name": "UseBlock",
+	"description": "Block inspection mod",
+	"authors": ["Valery"],
+	"license": "MIT",
+
+	"entrypoints": {
+		"main": [
+			"ru.lera.useblock.UseBlockMod"
+		],
+		"client": [
+			"ru.lera.useblock.client.UseBlockClient"
+		]
+	},
+
+	"depends": {
+		"fabricloader": ">=0.15.0",
+		"fabric": "*",
+		"minecraft": "1.20.4"
+	}
+}
