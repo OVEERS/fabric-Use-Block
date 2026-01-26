@@ -102,6 +102,33 @@ public class UseBlockCommand {
                         )
 
                         // ============================
+                        // /useblock command <id> <cmd>
+                        // ============================
+                        .then(CommandManager.literal("command")
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer())
+                                        .then(CommandManager.argument("command", StringArgumentType.greedyString())
+                                                .executes(context -> {
+                                                    int id = IntegerArgumentType.getInteger(context, "id");
+                                                    String cmd = StringArgumentType.getString(context, "command");
+
+                                                    ServerCommandSource source = context.getSource();
+                                                    UseBlockState state = UseBlockState.get(source.getWorld());
+                                                    UseBlockData data = state.get(id);
+
+                                                    if (data != null) {
+                                                        data.command = cmd;
+                                                        state.markDirty();
+                                                        source.sendFeedback(() -> Text.literal("Команда для ID " + id + " установлена: " + cmd), false);
+                                                    } else {
+                                                        source.sendError(Text.literal("Блок с ID " + id + " не найден!"));
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
+                                )
+                        )
+
+                        // ============================
                         // /useblock inspect_time <id> <seconds>
                         // ============================
                         .then(CommandManager.literal("inspect_time")
@@ -254,6 +281,42 @@ public class UseBlockCommand {
 
                                     return 1;
                                 })
+                        )
+                        .then(CommandManager.literal("key")
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer())
+                                        .then(CommandManager.argument("item", StringArgumentType.string())
+                                                .executes(context -> {
+                                                    int id = IntegerArgumentType.getInteger(context, "id");
+                                                    String item = StringArgumentType.getString(context, "item");
+                                                    UseBlockState state = UseBlockState.get(context.getSource().getWorld());
+                                                    UseBlockData data = state.get(id);
+                                                    if (data != null) {
+                                                        data.requiredItem = item;
+                                                        state.markDirty();
+                                                        context.getSource().sendFeedback(() -> Text.literal("Для блока " + id + " нужен предмет: " + item), false);
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
+                                )
+                        )
+                        .then(CommandManager.literal("lock_msg")
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer())
+                                        .then(CommandManager.argument("msg", StringArgumentType.greedyString())
+                                                .executes(context -> {
+                                                    int id = IntegerArgumentType.getInteger(context, "id");
+                                                    String msg = StringArgumentType.getString(context, "msg").replace("&", "§");
+                                                    UseBlockState state = UseBlockState.get(context.getSource().getWorld());
+                                                    UseBlockData data = state.get(id);
+                                                    if (data != null) {
+                                                        data.lockMessage = msg;
+                                                        state.markDirty();
+                                                        context.getSource().sendFeedback(() -> Text.literal("Сообщение об ошибке обновлено"), false);
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
+                                )
                         )
         ));
     }
