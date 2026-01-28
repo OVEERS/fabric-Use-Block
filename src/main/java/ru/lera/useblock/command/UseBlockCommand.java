@@ -4,12 +4,15 @@ import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.registry.Registries;
+import net.minecraft.command.argument.ItemStackArgumentType;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
@@ -127,6 +130,7 @@ public class UseBlockCommand {
                                         )
                                 )
                         )
+
 
                         // ============================
                         // /useblock inspect_time <id> <seconds>
@@ -247,7 +251,10 @@ public class UseBlockCommand {
                                                                     "\nDim: " + data.dimension.getValue() +
                                                                     "\ninspectTime: " + data.inspectTime +
                                                                     "\nradius: " + data.radius +
-                                                                    "\ntext: " + Text.Serialization.toJsonString(data.text)
+                                                                    "\ntext: " + Text.Serialization.toJsonString(data.text) +
+                                                                    "\nКлюч (Item): " + (data.requiredItem.isEmpty() ? "НЕТ" : data.requiredItem) +
+                                                                    "\nMsg: " + data.lockMessage +
+                                                                    "\nPos: " + data.pos.toShortString()
                                                     ),
                                                     false
                                             );
@@ -282,24 +289,29 @@ public class UseBlockCommand {
                                     return 1;
                                 })
                         )
+
                         .then(CommandManager.literal("key")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
-                                        .then(CommandManager.argument("item", StringArgumentType.string())
+                                        .then(CommandManager.argument("item", ItemStackArgumentType.itemStack(registryAccess))
                                                 .executes(context -> {
                                                     int id = IntegerArgumentType.getInteger(context, "id");
-                                                    String item = StringArgumentType.getString(context, "item");
+                                                    // Получаем ID предмета через специальный тип аргумента
+                                                    var itemInput = ItemStackArgumentType.getItemStackArgument(context, "item");
+                                                    String itemId = Registries.ITEM.getId(itemInput.getItem()).toString();
+
                                                     UseBlockState state = UseBlockState.get(context.getSource().getWorld());
                                                     UseBlockData data = state.get(id);
                                                     if (data != null) {
-                                                        data.requiredItem = item;
+                                                        data.requiredItem = itemId;
                                                         state.markDirty();
-                                                        context.getSource().sendFeedback(() -> Text.literal("Для блока " + id + " нужен предмет: " + item), false);
+                                                        context.getSource().sendFeedback(() -> Text.literal("§aБлок " + id + " теперь требует: §6" + itemId), false);
                                                     }
                                                     return 1;
                                                 })
                                         )
                                 )
                         )
+
                         .then(CommandManager.literal("lock_msg")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .then(CommandManager.argument("msg", StringArgumentType.greedyString())

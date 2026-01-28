@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import ru.lera.useblock.command.UseBlockCommand;
 import ru.lera.useblock.interaction.BlockUseHandler;
 import ru.lera.useblock.network.UseBlockPackets;
-import ru.lera.useblock.client.UseBlockClientPackets;
 
 public class UseBlockMod implements ModInitializer {
 

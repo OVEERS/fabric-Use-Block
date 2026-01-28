@@ -27,14 +27,25 @@ public class BlockUseHandler {
                 serverPlayer.sendMessage(Text.literal("§cСлишком далеко для изучения!"), true);
                 return ActionResult.FAIL; // Отменяем действие полностью
             }
-            if (data.requiredItem != null && !data.requiredItem.isEmpty()) {
-                String heldItemId = net.minecraft.registry.Registries.ITEM.getId(player.getStackInHand(hand).getItem()).toString();
+
+            if (data.requiredItem != null && !data.requiredItem.trim().isEmpty() && !data.requiredItem.equalsIgnoreCase("none")) {
+
+                var stack = player.getStackInHand(hand);
+                // Получаем ID предмета в руке (например, "minecraft:iron_axe")
+                String heldItemId = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString();
+
+                // ГЛАВНАЯ ПРОВЕРКА:
+                // 1. Если рука пустая, heldItemId будет "minecraft:air"
+                // 2. Сравниваем ID предмета с тем, что сохранено в данных
                 if (!heldItemId.equals(data.requiredItem)) {
+                    // Если ID не совпали — выводим сообщение в экшн-бар
                     serverPlayer.sendMessage(Text.literal(data.lockMessage), true);
                     return ActionResult.FAIL;
                 }
+
+                // Если мы здесь — ключ подошел!
                 if (!player.isCreative()) {
-                    player.getStackInHand(hand).decrement(1);
+                    stack.decrement(1); // Забираем предмет, если не креатив
                 }
             }
 

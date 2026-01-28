@@ -6,11 +6,15 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import ru.lera.useblock.data.UseBlockState;
 import ru.lera.useblock.data.UseBlockData;
+
+import static ru.lera.useblock.UseBlockMod.LOGGER;
 
 public class UseBlockPackets {
     public static final Identifier START_INSPECTION = new Identifier("useblock", "start_inspection");
@@ -27,7 +31,15 @@ public class UseBlockPackets {
                     player.removeStatusEffect(StatusEffects.SLOWNESS); // Снимаем замедление
 
                     if (data.command != null && !data.command.isEmpty()) {
-                        server.getCommandManager().executeWithPrefix(server.getCommandSource(), data.command);
+                        // Создаем источник от имени СЕРВЕРА (у него есть все права)
+                        ServerCommandSource source = server.getCommandSource()
+                                .withLevel(4) // Права оператора
+                                .withSilent(); // Отключает стандартные сообщения о выполнении
+
+                        server.getCommandManager().executeWithPrefix(source, data.command);
+
+                        // Выводим в консоль для тебя, чтобы ты видел, что всё сработало
+                        LOGGER.info("[UseBlock] Блок {} выполнил команду: /{}", data.id, data.command);
                     }
                 }
             });
