@@ -16,9 +16,7 @@ public class UseBlockState extends PersistentState {
     public final Map<Integer, UseBlockData> blocks = new HashMap<>();
     private int nextId = 1;
 
-    // ==========================
     //   PersistentState TYPE
-    // ==========================
     public static final Type<UseBlockState> TYPE = new Type<>(
             UseBlockState::new,
             UseBlockState::fromNbt,
@@ -29,10 +27,7 @@ public class UseBlockState extends PersistentState {
 
     public UseBlockState() {}
 
-
-    // ==========================
     //   СОЗДАНИЕ НОВОГО БЛОКА
-    // ==========================
     public int create(BlockPos pos, RegistryKey<World> dim) {
         int id = nextId++;
 
@@ -43,31 +38,22 @@ public class UseBlockState extends PersistentState {
         return id;
     }
 
-
-    // ==========================
     //   ПОЛУЧЕНИЕ ПО ID
-    // ==========================
     public UseBlockData get(int id) {
         return blocks.get(id);
     }
 
-
-    // ==========================
     //   ПОИСК ПО ПОЗИЦИИ
-    // ==========================
     public UseBlockData find(BlockPos pos, RegistryKey<World> dim) {
         for (UseBlockData data : blocks.values()) {
-            if (data.pos.equals(pos) && data.dimension.equals(dim)) {
+            if (data.dimension.equals(dim) && data.positions.contains(pos)) {
                 return data;
             }
         }
         return null;
     }
 
-
-    // ==========================
     //   УДАЛЕНИЕ
-    // ==========================
     public boolean remove(int id) {
         if (blocks.remove(id) != null) {
             markDirty();
@@ -76,10 +62,7 @@ public class UseBlockState extends PersistentState {
         return false;
     }
 
-
-    // ==========================
     //   СЕРИАЛИЗАЦИЯ
-    // ==========================
     @Override
     public NbtCompound writeNbt(NbtCompound nbt) {
 
@@ -94,10 +77,7 @@ public class UseBlockState extends PersistentState {
         return nbt;
     }
 
-
-    // ==========================
     //   ДЕСЕРИАЛИЗАЦИЯ
-    // ==========================
     public static UseBlockState fromNbt(NbtCompound nbt) {
 
         UseBlockState state = new UseBlockState();
@@ -125,9 +105,7 @@ public class UseBlockState extends PersistentState {
     }
 
 
-    // ==========================
     //   ПОЛУЧЕНИЕ ИЗ МИРА
-    // ==========================
     public static UseBlockState get(ServerWorld world) {
         return world.getPersistentStateManager().getOrCreate(
                 TYPE,

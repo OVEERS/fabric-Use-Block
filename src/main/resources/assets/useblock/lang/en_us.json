@@ -1,0 +1,9 @@
+{
+  "useblock.message.too_far": "§cI am too far to inspect this!",
+  "useblock.message.no_key": "§cI need a specific item to open this!",
+  "useblock.command.added": "Block successfully added with ID: %s",
+  "useblock.command.removed": "Block with ID %s has been removed",
+  "useblock.command.not_found": "Block with this ID was not found",
+  "useblock.command.msg_updated": "Error message updated",
+  "itemGroup.useblock.main": "UseBlock Mod"
+}

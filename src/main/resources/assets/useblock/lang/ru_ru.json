@@ -1,0 +1,9 @@
+{
+  "useblock.message.too_far": "§cЯ слишком далеко для изучения!",
+  "useblock.message.no_key": "§cМне нужен определенный предмет!",
+  "useblock.command.added": "Блок успешно добавлен с ID: %s",
+  "useblock.command.removed": "Блок с ID %s удален",
+  "useblock.command.not_found": "Блок с таким ID не найден",
+  "useblock.command.msg_updated": "Сообщение об ошибке обновлено",
+  "itemGroup.useblock.main": "Предметы UseBlock"
+}

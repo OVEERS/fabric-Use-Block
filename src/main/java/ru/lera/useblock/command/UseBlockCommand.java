@@ -1,5 +1,6 @@
 package ru.lera.useblock.command;
 
+import com.mojang.authlib.yggdrasil.response.UserAttributesResponse;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -20,6 +21,8 @@ import net.minecraft.world.World;
 import ru.lera.useblock.data.UseBlockData;
 import ru.lera.useblock.data.UseBlockState;
 
+import java.util.concurrent.ConcurrentNavigableMap;
+
 public class UseBlockCommand {
 
     public static void register() {
@@ -27,49 +30,37 @@ public class UseBlockCommand {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
                 CommandManager.literal("useblock")
 
-                        // ============================
                         // /useblock add
-                        // ============================
                         .then(CommandManager.literal("add")
-                                .executes(context -> {
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer(1))
+                                        .executes(context -> {
+                                            int id = IntegerArgumentType.getInteger(context, "id");
+                                            ServerPlayerEntity player = context.getSource().getPlayerOrThrow();
+                                            HitResult hit = player.raycast(5.0, 0.0f, false);
 
-                                    ServerCommandSource source = context.getSource();
+                                            if (hit.getType() != HitResult.Type.BLOCK) return 0;
+                                            BlockPos pos = ((BlockHitResult) hit).getBlockPos();
 
-                                    if (!(source.getEntity() instanceof ServerPlayerEntity player)) {
-                                        source.sendError(Text.literal("Команду может использовать только игрок"));
-                                        return 0;
-                                    }
+                                            UseBlockState state = UseBlockState.get(player.getServerWorld());
+                                            UseBlockData data = state.get(id);
 
-                                    HitResult hit = player.raycast(5.0, 0.0f, false);
-
-                                    if (hit.getType() != HitResult.Type.BLOCK) {
-                                        source.sendError(Text.literal("Ты не смотришь на блок"));
-                                        return 0;
-                                    }
-
-                                    BlockHitResult blockHit = (BlockHitResult) hit;
-
-                                    ServerWorld world = player.getServerWorld();
-                                    UseBlockState state = UseBlockState.get(world);
-
-                                    BlockPos pos = blockHit.getBlockPos();
-                                    RegistryKey<World> dim = world.getRegistryKey();
-
-                                    int id = state.create(pos, dim);
-
-                                    source.sendFeedback(
-                                            () -> Text.literal(
-                                                    "[UseBlock] Блоку \"" +
-                                                            world.getBlockState(pos).getBlock().getName().getString() +
-                                                            "\" по координатам " +
-                                                            pos.toShortString() +
-                                                            " присвоен ID: " + id
-                                            ),
-                                            false
-                                    );
-
-                                    return 1;
-                                })
+                                            if (data == null) {
+                                                // создаю новый конфиг с этим ID
+                                                data = new UseBlockData(id, pos, player.getWorld().getRegistryKey());
+                                                data.positions.add(pos);
+                                                state.blocks.put(id, data);
+                                                context.getSource().sendFeedback(() -> Text.literal("§aСоздан новый ID " + id), false);
+                                            } else {
+                                                // добавляю блок к существующему ID
+                                                if (!data.positions.contains(pos)) {
+                                                    data.positions.add(pos);
+                                                    context.getSource().sendFeedback(() -> Text.literal("§aБлок привязан к существующему ID " + id), false);
+                                                }
+                                            }
+                                            state.markDirty();
+                                            return 1;
+                                        })
+                                )
                         )
 
                         // /useblock text <id> <json>
@@ -94,7 +85,6 @@ public class UseBlockCommand {
                                                         data.text = Text.Serialization.fromJson(json);
 
                                                         src.sendFeedback(() -> Text.literal("Текст обновлён"), false);
-
                                                     } catch (Exception e) {
                                                         src.sendFeedback(() -> Text.literal("Ошибка JSON: " + e.getMessage()), false);
                                                     }
@@ -104,9 +94,7 @@ public class UseBlockCommand {
                                         ))
                         )
 
-                        // ============================
                         // /useblock command <id> <cmd>
-                        // ============================
                         .then(CommandManager.literal("command")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .then(CommandManager.argument("command", StringArgumentType.greedyString())
@@ -131,10 +119,7 @@ public class UseBlockCommand {
                                 )
                         )
 
-
-                        // ============================
                         // /useblock inspect_time <id> <seconds>
-                        // ============================
                         .then(CommandManager.literal("inspect_time")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .then(CommandManager.argument("seconds", IntegerArgumentType.integer())
@@ -166,9 +151,7 @@ public class UseBlockCommand {
                                 )
                         )
 
-                        // ============================
                         // /useblock radius <id> <value>
-                        // ============================
                         .then(CommandManager.literal("radius")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
@@ -200,9 +183,7 @@ public class UseBlockCommand {
                                 )
                         )
 
-                        // ============================
                         // /useblock remove <id>
-                        // ============================
                         .then(CommandManager.literal("remove")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .executes(context -> {
@@ -213,12 +194,9 @@ public class UseBlockCommand {
                                             UseBlockState state = UseBlockState.get(source.getWorld());
 
                                             if (state.remove(id)) {
-                                                source.sendFeedback(
-                                                        () -> Text.literal("Блок " + id + " удалён"),
-                                                        false
-                                                );
+                                                context.getSource().sendFeedback(() -> Text.translatable("useblock.command.removed", id), false); // шлю подтверждение
                                             } else {
-                                                source.sendError(Text.literal("Блок с ID " + id + " не найден"));
+                                                context.getSource().sendFeedback(() -> Text.translatable("useblock.command.not_found"), false); // шлю ошибку
                                             }
 
                                             return 1;
@@ -226,9 +204,7 @@ public class UseBlockCommand {
                                 )
                         )
 
-                        // ============================
                         // /useblock info <id>
-                        // ============================
                         .then(CommandManager.literal("info")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .executes(context -> {
@@ -264,9 +240,7 @@ public class UseBlockCommand {
                                 )
                         )
 
-                        // ============================
                         // /useblock list
-                        // ============================
                         .then(CommandManager.literal("list")
                                 .executes(context -> {
 
@@ -289,7 +263,7 @@ public class UseBlockCommand {
                                     return 1;
                                 })
                         )
-
+                        // /useblock key <id> <object>
                         .then(CommandManager.literal("key")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .then(CommandManager.argument("item", ItemStackArgumentType.itemStack(registryAccess))
@@ -312,6 +286,7 @@ public class UseBlockCommand {
                                 )
                         )
 
+                        // /useblock lock_msg <id> <text>
                         .then(CommandManager.literal("lock_msg")
                                 .then(CommandManager.argument("id", IntegerArgumentType.integer())
                                         .then(CommandManager.argument("msg", StringArgumentType.greedyString())
@@ -320,16 +295,94 @@ public class UseBlockCommand {
                                                     String msg = StringArgumentType.getString(context, "msg").replace("&", "§");
                                                     UseBlockState state = UseBlockState.get(context.getSource().getWorld());
                                                     UseBlockData data = state.get(id);
+
                                                     if (data != null) {
                                                         data.lockMessage = msg;
                                                         state.markDirty();
-                                                        context.getSource().sendFeedback(() -> Text.literal("Сообщение об ошибке обновлено"), false);
+                                                        context.getSource().sendFeedback(() -> Text.translatable("useblock.command.msg_updated"), false); // шлю перевод
                                                     }
                                                     return 1;
                                                 })
                                         )
                                 )
                         )
-        ));
+
+                        .then(CommandManager.literal("setup")
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer())
+                                        .then(CommandManager.argument("seconds", IntegerArgumentType.integer(0, 300))
+                                                .executes(context -> {
+                                                    int id = IntegerArgumentType.getInteger(context, "id"); // беру id блока
+                                                    int seconds = IntegerArgumentType.getInteger(context, "seconds"); // беру время
+                                                    UseBlockState state = UseBlockState.get(context.getSource().getWorld()); // беру данные мира
+                                                    UseBlockData data = state.get(id); // ищу блок по id
+
+                                                    if (data != null) {
+                                                        data.inspectTime = seconds;
+
+                                                        // если стоит вечный замок, то мы его снимаем
+                                                        if (data.requiredItem.equalsIgnoreCase("locked")) {
+                                                            data.requiredItem = ""; // снимаю замок
+                                                        }
+
+                                                        state.markDirty();
+                                                        // вывожу ебейший текст
+                                                        context.getSource().sendFeedback(() -> Text.literal("Время осмотра для ID " + id + " установлен на " + seconds + " сек."), false);
+                                                    }
+                                                    else {
+                                                        context.getSource().sendError(Text.literal("Блок с ID " + id + " не найден"));
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
+                                )
+                        )
+
+                        // / useblock lock id Вечный замок
+                        .then(CommandManager.literal("lock")
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer())
+                                        .executes(context -> {
+                                            int id = IntegerArgumentType.getInteger(context, "id");
+                                            UseBlockState state = UseBlockState.get(context.getSource().getWorld());
+                                            UseBlockData data = state.get(id);
+
+                                            if (data != null) {
+                                                data.requiredItem = "locked";
+                                                data.inspectTime = 0;
+                                                state.markDirty();
+                                                context.getSource().sendFeedback(() -> Text.literal("§6[UseBlock] §fБлок ID " + id + " теперь §cху откроешь." ), false);
+                                            }
+                                            else {
+                                                context.getSource().sendError(Text.literal("Блок с ID " + id + " не найден"));
+                                            }
+                                            return 1;
+                                        })
+                                )
+                        )
+
+                        // /useblock unlock id
+                        .then(CommandManager.literal("unlock")
+                                .then(CommandManager.argument("id", IntegerArgumentType.integer())
+                                        .executes(context -> {
+                                            int id = IntegerArgumentType.getInteger(context, "id");
+                                            UseBlockState state = UseBlockState.get(context.getSource().getWorld());
+                                            UseBlockData data = state.get(id);
+
+                                            if (data != null) {
+                                                data.requiredItem = "";
+                                                data.inspectTime = 0;
+                                                state.markDirty();
+                                                context.getSource().sendFeedback(() -> Text.literal("§6[UseBlock] §fБлок ID " + id + " теперь §cоткрывается."), false);
+                                            }
+                                            else {
+                                                context.getSource().sendError(Text.literal("Блок с ID " + id + " не найден"));
+                                            }
+                                            return 1;
+                                        })
+                                )
+                        )
+                )
+        );
+
+
     }
 }

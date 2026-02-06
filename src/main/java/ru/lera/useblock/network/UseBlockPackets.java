@@ -28,18 +28,17 @@ public class UseBlockPackets {
                 UseBlockData data = state.get(id);
                 if (data != null) {
                     player.sendMessage(data.text, false);
-                    player.removeStatusEffect(StatusEffects.SLOWNESS); // Снимаем замедление
+                    player.removeStatusEffect(StatusEffects.SLOWNESS);
 
                     if (data.command != null && !data.command.isEmpty()) {
-                        // Создаем источник от имени СЕРВЕРА (у него есть все права)
-                        ServerCommandSource source = server.getCommandSource()
-                                .withLevel(4) // Права оператора
-                                .withSilent(); // Отключает стандартные сообщения о выполнении
 
+                        ServerCommandSource source = server.getCommandSource()
+                                .withLevel(4)
+                                .withSilent();
+                        // выполняю команду после таймера
                         server.getCommandManager().executeWithPrefix(source, data.command);
 
-                        // Выводим в консоль для тебя, чтобы ты видел, что всё сработало
-                        LOGGER.info("[UseBlock] Блок {} выполнил команду: /{}", data.id, data.command);
+                        LOGGER.info("[UseBlock] Блок {} выполнил команду: /{}", data.id, data.command); // вывод в консоль команды
                     }
                 }
             });
@@ -47,7 +46,7 @@ public class UseBlockPackets {
     }
 
     public static void sendStartInspection(ServerPlayerEntity player, UseBlockData data) {
-        // Накладываем эффекты: Замедление (SLOWNESS) и Тьма (DARKNESS) для погружения
+        // эффекты Замедление и Тьма для погружения
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, data.inspectTime * 20, 2, false, false));
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 40, 0, false, false));
 
@@ -58,10 +57,10 @@ public class UseBlockPackets {
         );
 
         PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeInt(data.id);           // Исправлено: передаем int, а не объект
-        buf.writeInt(data.inspectTime);  // Передаем время осмотра
-        buf.writeBlockPos(data.pos);     // Передаем позицию для проверки дистанции
-        buf.writeDouble(data.radius);    // Передаем радиус прерывания
+        buf.writeInt(data.id);           // передача int
+        buf.writeInt(data.inspectTime);  // передача времени осмотра
+        buf.writeBlockPos(data.pos);     // передача позиции для проверки дистанции
+        buf.writeDouble(data.radius);    // передача радиуса остановки
         ServerPlayNetworking.send(player, START_INSPECTION, buf);
     }
 }

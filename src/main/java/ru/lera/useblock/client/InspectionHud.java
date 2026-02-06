@@ -37,17 +37,17 @@ public class InspectionHud {
             return;
         }
 
-        long elapsed = System.currentTimeMillis() - startTime;
-        if (elapsed >= duration) {
-            active = false;
-            UseBlockClientPackets.sendFinishInspection(currentId);
+        long elapsed = System.currentTimeMillis() - startTime; // считаю сколько времени прошло
+        if (elapsed >= duration) { // если время вышло
+            active = false; // выключаю худ
+            UseBlockClientPackets.sendFinishInspection(currentId); // шлю пакет о завершении на сервер
             return;
         }
 
         long elapsedSeconds = elapsed / 1000;
-        if (elapsedSeconds != lastPlayedSecond) {
-            client.player.playSound(net.minecraft.sound.SoundEvents.BLOCK_NOTE_BLOCK_BIT.value(), 0.4f, 1.2f);
-            lastPlayedSecond = elapsedSeconds;
+        if (elapsedSeconds != lastPlayedSecond) { // проверяю секунду для звука
+            client.player.playSound(net.minecraft.sound.SoundEvents.BLOCK_NOTE_BLOCK_BIT.value(), 0.4f, 1.2f); // проигрываю звук тиканья
+            lastPlayedSecond = elapsedSeconds; // запоминаю текущую секунду
         }
 
         renderProgressBar(context, client, (float) elapsed / duration);

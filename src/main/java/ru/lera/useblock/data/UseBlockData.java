@@ -27,13 +27,17 @@ public class UseBlockData {
         this.dimension = dimension;
     }
 
-    // ==========================
-    //   СЕРИАЛИЗАЦИЯ
-    // ==========================
+    public java.util.List<BlockPos> positions = new java.util.ArrayList<>(); // список всех привязанных блоков
+
+    //   СЕРИАЛИЗАЦИЯ в nbt
     public NbtCompound toNbt() {
         NbtCompound nbt = new NbtCompound();
         nbt.putInt("id", id);
-        nbt.putLong("pos", pos.asLong());
+
+        net.minecraft.nbt.NbtList posList = new net.minecraft.nbt.NbtList();
+        for (BlockPos p : positions) {
+            posList.add(net.minecraft.nbt.NbtLong.of(p.asLong()));
+        }
         nbt.putString("dimension", dimension.getValue().toString());
         nbt.putString("text", Text.Serialization.toJsonString(text));
         nbt.putInt("inspectTime", inspectTime);
@@ -44,14 +48,22 @@ public class UseBlockData {
         return nbt;
     }
 
-    // ==========================
-    //   ДЕСЕРИАЛИЗАЦИЯ
-    // ==========================
+
+    //   ДЕСЕРИАЛИЗАЦИЯ из nbt
     public static UseBlockData fromNbt(NbtCompound nbt) {
         int id = nbt.getInt("id");
-        BlockPos pos = BlockPos.fromLong(nbt.getLong("pos"));
         RegistryKey<World> dim = RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("dimension")));
-        UseBlockData data = new UseBlockData(id, pos, dim);
+        UseBlockData data = new UseBlockData(id, null, dim);
+
+        net.minecraft.nbt.NbtList posList = nbt.getList("positions", 4); // 4 — это тип Long
+        for (int i = 0; i < posList.size(); i++) {
+            // Сначала получаем элемент, проверяем, что это NbtLong, и берем значение
+            net.minecraft.nbt.NbtElement element = posList.get(i);
+            if (element instanceof net.minecraft.nbt.NbtLong nbtLong) {
+                data.positions.add(BlockPos.fromLong(nbtLong.longValue()));
+            }
+        }
+
         data.text = Text.Serialization.fromJson(nbt.getString("text"));
         data.inspectTime = nbt.getInt("inspectTime");
         data.radius = nbt.getDouble("radius");
